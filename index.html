@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title hrfe="imgs/logo/ambato">Mapa Interactivo</title>
+  <link rel="icon" href="imgs/logo/fondo.png" type="image/x-icon">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css">
+
+</head>
+<body>
+
+  <nav class="navbar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <img src="imgs/logo/ambato.png" alt="Logo FFF" style="height: 40px; width: auto;">
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="files/programa_2026.pdf" download="Programa_FFF_2026.pdf" class="btn-download">
+        📥 <span>Descarga el Cronograma</span>
+      </a>
+      <button class="btn-menu-toggle" onclick="toggleNav()">☰</button>
+    </div>
+  </nav>
+
+  <div id="nav-content">
+    <div class="filter-group">
+      <label class="filter-item"><input type="checkbox" id="filter-events" checked> 📍 Puntos de Interés</label>
+      <label class="filter-item"><input type="checkbox" id="filter-food" checked> 🛍️ Negocios Locales</label>
+    </div>
+
+    <a href="auspiciantes.html" class="menu-link btn-auspiciantes">✨ NUESTROS AUSPICIANTES</a>
+
+    <div class="footer-credits">
+      <p class="credits-title">DISEÑO Y DESARROLLO</p>
+      
+      <div class="credits-links">
+        <a href="https://www.facebook.com/diartesambato/about" target="_blank" class="credit-item">
+          <img src="imgs/logo/diartes.png" alt="diartes">
+        </a>
+    
+        <span class="separator">|</span>
+    
+        <a href="https://www.instagram.com/diegomartin_44/" target="_blank" class="credit-item">
+          <img src="imgs/logo/martin.png" alt="Diego Martin">
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="sidebar">
+    <button style="float:right; border:none; background:none; font-size:28px; cursor:pointer;" onclick="closeSidebar()">&times;</button>
+    <div id="sidebar-info"></div>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // --- LÓGICA DE INTERFAZ ---
+    function toggleNav() {
+      document.getElementById('nav-content').classList.toggle('active');
+    }
+    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); }
+
+    // --- CONFIGURACIÓN DE VISTA INICIAL ALEJADA ---
+  const imgBounds = [[0, 0], [11000, 10000]];
+
+  const map = L.map("map", {
+    crs: L.CRS.Simple,
+    zoomControl: false,
+    maxBounds: imgBounds,
+    maxBoundsViscosity: 1.0,
+    attributionControl: false,
+    inertia: true
+  });
+
+  L.imageOverlay("imgs/mapa.png", imgBounds).addTo(map);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  function ajustarMapaDinamico() {
+    map.invalidateSize();
+
+    // 1. Calculamos el zoom exacto para que TODO el mapa quepa en la pantalla
+    // 'true' asegura que quepa completamente sin importar si la pantalla es vertical u horizontal
+    const zoomDeEncaje = -2.75;
+
+    // 2. Definimos los límites
+    // minZoom es el de encaje (para que no se vea el fondo gris)
+    // maxZoom es 1 (para poder acercarse a ver detalles)
+    map.setMinZoom(zoomDeEncaje); 
+    map.setMaxZoom(1);
+
+    // 3. SE VE ALEJADO: Iniciamos el mapa con ese zoom de encaje
+    // Centramos en el punto medio de tus coordenadas [[0,0], [11000, 10000]]
+    map.setView([5500, 5000], zoomDeEncaje);
+  }
+
+  // Ejecutar al cargar y al cambiar tamaño
+  window.onload = ajustarMapaDinamico;
+  window.addEventListener('resize', () => {
+    setTimeout(ajustarMapaDinamico, 0);
+  });
+
+    // --- DATOS ---
+    const lugares = [
+      {
+        id: 1, type: "event", name: "Casa de Montalvo",
+        x: 4510, y: 7110,
+        iconoPropio: "imgs/casa montalvo.png",
+        imagenLugar: "imgs/vista/casaMontalvo.jpg"
+      },
+      {
+        id: 2, type: "event", name: "Casa del Portal",
+        x: 4648, y: 6111,
+        iconoPropio: "imgs/casa portal.png",
+        imagenLugar: "imgs/vista/portal.jpg"
+      },
+      {
+        id: 3, type: "event", name: "Catedral",
+        x: 4904, y: 6474,
+        iconoPropio: "imgs/catedral.png",
+        imagenLugar: "imgs/vista/catedral.jpg",
+        cronograma: [{ dia: "Sábado 07", eventos: [
+        {t: "Trasmisión Elección Reina de Ambato y Fiesta de Celebración", h: "18h00"}
+        ]},
+        { dia: "Sábado 14", eventos: [
+        {t: "Bendición Flores, Frutas y Pan", h: "09h00"},
+        {t: "Rondalla Ambateña", h: "19h00"},
+        ]},
+        { dia: "Lunes 16", eventos: [
+        {t: "Misa con los Grupos Internacionales de Folclor", h: "11h00"}
+        ]}]
+      },
+      {
+        id: 4, type: "event", name: "Coliseo Cerrado de los Deportes",
+        x: 6976, y: 2860,
+        iconoPropio: "imgs/coliseo.png",
+        imagenLugar: "imgs/vista/coliseo.jpg",
+        cronograma: [{ dia: "Sábado 07",eventos: [
+        { t: "Elección Reina de Ambato", h: "19h00" }
+        ]}, 
+        {dia:"Viernes 13" , eventos:[
+          {t: "Inauguración del Festival Internacional del Folclore", h: "19h00"}]
+        },
+        {dia:"Sabado 14" , eventos:[
+        {t: "Festival Internacional del Folclore", h: "17h00"}]
+        },
+        {dia:"Martes 17" , eventos:[
+        {t: "Festival Internacional del Folclore", h: "15h00"}]
+        }]
+      },
+      
+      {
+        id: 5, type: "event", name: "Estadio Bellavista",
+        x: 6380, y: 3176,
+        iconoPropio: "imgs/estadio.png",
+        imagenLugar: "imgs/vista/estadio.jpg",
+        cronograma: [{ dia: "Domingo 08", eventos: [
+        {t: "Clásico Ambateño de Ex-Leyendas", h: "10h00"}] }]
+      },
+      {
+        id: 6, type: "event", name: "Explanada GADMA",
+        x: 2704, y: 416,
+        iconoPropio: "imgs/explanada gadma.png",
+        imagenLugar: "imgs/vista/GAD.png",
+        cronograma: [{ dia: "Martes 10", eventos: [
+        {t: "Ambateñita Primorosa(Auditorio)", h: "10h00"},
+        ]},
+        {dia: "Miercoles 11", eventos: [
+        {t: "Kuyay Folclor Infantil(Auditorio)", h: "10h00"}]},
+        { dia: "Sábado 14", eventos: [
+          {t: "Fiesta Retro", h: "19h00"},
+          ]},
+          { dia: "Domingo 15", eventos: [
+          {t: "Megaevento Internacional", h: "19h00"},
+          ]},
+          { dia: "Lunes 16", eventos: [
+          {t: "Megaevento Internacional", h: "21h00"},
+        ]}]
+      },
+      {
+        id: 7, type: "event", name: "La Liria",
+        x: 8096, y: 8376,
+        iconoPropio: "imgs/la liria.png",
+        imagenLugar: "imgs/vista/liria.jpg",
+        cronograma: [{ dia: "Martes 17", eventos: [
+        {t: "Exposición de carros Alegóricos", h: "10h00"}] }]
+      },
+      {
+        id: 8, type: "event", name: "Mall de los Andes",
+        x: 1944, y: 1608,
+        iconoPropio: "imgs/mall.png",
+        imagenLugar: "imgs/vista/mall.jpg"
+      },
+      {
+        id: 9, type: "event", name: "Mercado Central",
+        x: 5888, y: 5112,
+        iconoPropio: "imgs/mercado central.png",
+        imagenLugar: "imgs/vista/central.jpg",
+        cronograma: [{ dia: "Sábado 14", eventos: [
+        {t: "Coronación Simbólica en los Mercados", h: "11h00"}] }]
+      },
+      {
+        id: 10, type: "event", name: "Mercado Modelo",
+        x: 6606, y: 5624,
+        iconoPropio: "imgs/mercado modelo.png",
+        imagenLugar: "imgs/vista/modelo.jpg"
+      },
+      {
+        id: 11, type: "event", name: "Parque 12 de Noviembre",
+        x: 5316, y: 5192,
+        iconoPropio: "imgs/parque 12.png",
+        imagenLugar: "imgs/vista/12.jpg",
+        cronograma: [ {dia: "Viernes 13", eventos: [
+        {t: "Folclor en los Parques", h: "12h00"},
+        ] }]
+      },
+      {
+        id: 12, type: "event", name: "Parque Cevallos",
+        x: 5680, y: 6016,
+        iconoPropio: "imgs/parque cevallos.png",
+        imagenLugar: "imgs/vista/cevallos.jpg",
+        cronograma: [{ dia: "Miercoles 11", eventos: [
+        {t: "Ambato Danza con su Esencia", h: "20h00"},
+        ]},
+        { dia: "Viernes 13", eventos: [
+        {t: "Folclor en los Parques", h: "12h00"},
+        ]},
+        { dia: "Sábado 14", eventos: [
+        {t: "Feria Flores, Frutas y Pan", h: "10h00"},
+        ] },
+        { dia: "Lunes 16", eventos: [
+        {t: "Feria Flores, Frutas y Pan", h: "09h00"},
+        ] }]
+      },
+      {
+        id: 13, type: "event", name: "Parque de las Flores",
+        x: 1240, y: 3584,
+        iconoPropio: "imgs/parque de las flores.png",
+        imagenLugar: "imgs/vista/flores.jpg",
+        cronograma: [{ dia: "Domingo 08", eventos: [
+        {t: "Ruta Gastronómica", h: "11h00"},
+        {t: "Festival de Música Nacional", h: "15h00"}
+        ]},
+        { dia: "Domingo 15", eventos: [
+        {t: "Mr.Fest La Feria Del Sabor", h: "12h00"},
+        ]}]
+      },
+      {
+        id: 14, type: "event", name: "Parque el Sueño",
+        x: 2144, y: 8208,
+        iconoPropio: "imgs/parque el sueno.png",
+        imagenLugar: "imgs/vista/sueno.jpg",
+        cronograma: [{ dia: "Jueves 12", eventos: [
+        {t: "Evento por los 75 Años de la Fiesta", h: "19h30"},
+        ] }]
+      },
+      {
+        id: 15, type: "event", name: "Parque de la Familia",
+        x: 2552, y: 9933,
+        iconoPropio: "imgs/parque familia.png",
+        imagenLugar: "imgs/vista/familia.jpg"
+      },
+      {
+        id: 16, type: "event", name: "Parque Montalvo",
+        x: 4508, y: 6492,
+        iconoPropio: "imgs/parque montalvo.png",
+        imagenLugar: "imgs/vista/montalvoP.jpg",
+        cronograma: [{ dia: "Viernes 13", eventos: [
+        {t: "Folclor en los Parques", h: "12h00"}] },
+        { dia: "Sábado 14", eventos: [
+        {t: "Trivia Raíces que Responden", h: "14h00"}] }]
+      },
+      {
+        id: 17, type: "event", name: "Paseo Shoping",
+        x: 536, y: 3496,
+        iconoPropio: "imgs/paseo shoping.png",
+        imagenLugar: "imgs/vista/paseo.png"
+      },
+      {
+        id: 18, type: "event", name: "Plaza de Toros",
+        x: 1456, y: 4848,
+        iconoPropio: "imgs/plaza toros.png",
+        imagenLugar: "imgs/vista/plaza.jpg",
+        cronograma: [{ dia: "Sábado 14", eventos: [
+        {t: "Feria Nuestra Señora de la Merced", h: "15h00"}]},
+        { dia: "Domingo 15", eventos: [
+        {t: "Feria Nuestra Señora de la Merced", h: "15h00"}] }]
+      },
+      {
+        id: 19, type: "event", name: "Monumento a la Primera Imprenta",
+        x: 5784, y: 9608,
+        iconoPropio: "imgs/primera imprenta.png",
+        imagenLugar: "imgs/vista/primera.jpg",
+        cronograma: [{ dia: "Jueves 12", eventos: [
+        {t: "Ambato Danza con su Esencia", h: "19h30"},
+        ] }]
+      },
+      {
+        id: 20, type: "event", name: "Quinta de Mera",
+        x: 7024, y: 8236,
+        iconoPropio: "imgs/quinta de mera.png",
+        imagenLugar: "imgs/vista/mera.jpg",
+        cronograma: [{ dia: "Viernes 13", eventos: [
+        {t: "Saludo Protocolario de las Delegaciones Internacionales", h: "09h00"},
+        ] },
+        { dia: "Sábado 14", eventos: [
+        {t: 'Inauguración de la Exposición "El Caballo y Nuestra Identidad"', h: "19h00"},
+        {t: 'Presentaciones Artísticas y Culturales "Así Celebra Ambato"', h: "20h00"}
+        ] },
+        { dia: "Domingo 15", eventos: [
+        {t: "Tarde de Música y Danza Tradicional", h: "15h00"}
+        ]},
+        { dia: "Miercoles 25", eventos: [
+        {t: "Entrega de Reconocimientos", h: "15h00"},
+        ]}]
+      },
+      {
+        id: 21, type: "event", name: "Quinta de Juan Montalvo",
+        x: 1784, y: 9168,
+        iconoPropio: "imgs/quinta de montalvo.png",
+        imagenLugar: "imgs/vista/montalvoQ.jpg",
+      },
+      {
+        id: 22, type: "event", name: "Av. Cevallos",
+        x: 5140, y: 5864,
+        iconoPropio: "imgs/av cevallos.png",
+        imagenLugar: "imgs/vista/cevallosA.jpg",
+        cronograma: [{ dia: "Domingo 15", eventos: [
+        {t: "Desfile F.F.F.", h: "09h00"}] },
+        { dia: "Lunes 16", eventos: [
+        {t: "Ronda Nocturnal", h: "19h00"}] }]
+      },
+      {
+        id: 23, type: "event", name: "Torre del Reloj",
+        x: 4496, y: 3216,
+        iconoPropio: "imgs/torre reloj.png",
+        imagenLugar: "imgs/vista/torre.jpg",
+        cronograma: [{ dia: "Viernes 13", eventos: [
+        {t: 'Amor y Ambato "We Celebrate Cuarta Edición"', h: "16h00"}] },
+        { dia: "Sábado 14", eventos: [
+        {t: "Ambato Florece en San Valentín", h: "15h00"}] }]
+      },
+      {
+        id: 24, type: "food", name: "Gasolinera América",
+        x: 8961, y: 8147,
+        iconoPropio: "imgs/auspiciantes/logos/AMERICA.png",
+        url: "https://www.instagram.com/gasolineraamerica_ambato?igsh=MW5mc2Zyb3l3M2dhbw=="
+      },
+      {
+        id: 25, type: "food", name: "ARA Constructores",
+        x: 7764, y: 2108,
+        iconoPropio: "imgs/auspiciantes/logos/ARA.png",
+        url: "https://wa.me/593983162204"
+      },
+      {
+        id: 26, type: "food", name: "C&B",
+        x: 908, y: 3764,
+        iconoPropio: "imgs/auspiciantes/logos/C&B.png",
+        url: "https://www.instagram.com/cyb.events?igsh=MTAzNTY2cGJmaGRvOQ=="
+      },
+      {
+        id: 27, type: "food", name: "COACET",
+        x: 9008, y: 4534,
+        iconoPropio: "imgs/auspiciantes/logos/COACET.png",
+        url: "https://www.instagram.com/coopcoacet?igsh=MWZwbWkybTE5cnNuZw=="
+      },
+      {
+        id: 28, type: "food", name: "FAVIQ",
+        x: 3202, y: 928,
+        iconoPropio: "imgs/auspiciantes/logos/FAVIQ.png",
+        url: "https://www.instagram.com/faviqdental?igsh=MWU0c2s5Mzd1MThiNA=="
+      },
+      {
+        id: 29, type: "food", name: "GALA",
+        x: 7220, y: 5792,
+        iconoPropio: "imgs/auspiciantes/logos/GALA.png",
+        url: "https://www.instagram.com/galaproduccionesec?igsh=MXhnbDNieGM5NjQ3aQ=="
+      },
+      {
+        id: 30, type: "food", name: "GEORGE",
+        x: 5684, y: 1467,
+        iconoPropio: "imgs/auspiciantes/logos/GEORGE.png",
+        url: "https://www.instagram.com/parrrilladas_de_george?igsh=bXlpODR0OTIxdjN3"
+      },
+      {
+        id: 31, type: "food", name: "GIUSEPPE",
+        x: 3162, y: 8880,
+        iconoPropio: "imgs/auspiciantes/logos/GIUSEPPE.png",
+        url: "https://www.instagram.com/giuseppes.restaurante?igsh=MTRhaDVkdml4YzlxNw=="
+      },
+      {
+        id: 32, type: "food", name: "GOLOSONE",
+        x: 5967, y: 1601,
+        iconoPropio: "imgs/auspiciantes/logos/GOLOSONE.png",
+        url: "https://www.instagram.com/marisqueriagolosone?igsh=MXBhNWlqNmFzanYzbw=="
+      },
+      {
+        id: 33, type: "food", name: "LAVANDERIAS",
+        x: 686, y: 4595,
+        iconoPropio: "imgs/auspiciantes/logos/LAVANDERIAS.png",
+        url: "https://www.instagram.com/lavanderiasnacionales?igsh=OHR5aTNremVpMDc3"
+      },
+      {
+        id: 34, type: "food", name: "MAMA MICHE",
+        x: 1744, y: 5084,
+        iconoPropio: "imgs/auspiciantes/logos/MAMA MICHE.png",
+        url: "https://www.instagram.com/mamamicheparrilladas?igsh=MTd5ajV3Mmpudng2dA=="
+      },
+      {
+        id: 35, type: "food", name: "MIMO",
+        x: 2368, y: 7534,
+        iconoPropio: "imgs/auspiciantes/logos/MIMO.png",
+        url: "https://www.instagram.com/mimoecambato?igsh=MW4wZTF0ajJiYTVlNA=="
+      },
+      {
+        id: 36, type: "food", name: "MIOVIDA",
+        x: 3653, y: 8698,
+        iconoPropio: "imgs/auspiciantes/logos/MIOVIDA.png",
+        url: "https://www.instagram.com/miovida.fisio?igsh=cGFncjI4YzFuazdq"
+      },
+      {
+        id: 36, type: "food", name: "REGATE",
+        x: 728, y: 4032,
+        iconoPropio: "imgs/auspiciantes/logos/REGATE.png",
+        url: "https://www.instagram.com/elregatesportbar?igsh=cXJ3NmVocmdqdnNv"
+      },
+      {
+        id: 36, type: "food", name: "ROLL",
+        x: 4796, y: 2368,
+        iconoPropio: "imgs/auspiciantes/logos/ROLL.png",
+        url: "https://www.instagram.com/rollandbowl.ec?igsh=aGpvN3BwOGhoMm9t"
+      },
+      {
+        id: 36, type: "food", name: "FRITAS",
+        x: 4776, y: 7008,
+        iconoPropio: "imgs/auspiciantes/logos/fritas.png",
+        url: "https://www.instagram.com/fritastogo.ec?igsh=MTZvc3hhZjBmenN4ag=="
+      },
+      {
+        id: 36, type: "food", name: "Epsilon",
+        x: 4820, y: 5564,
+        iconoPropio: "imgs/auspiciantes/logos/epsilon.png",
+        url: "https://www.edicionesepsilon-book.com.ec"
+      }
+      
+
+    ];
+
+    const groups = {
+      events: L.layerGroup().addTo(map),
+      food: L.layerGroup().addTo(map)
+    };
+    lugares.forEach(l => {
+      const icon = L.icon({
+        iconUrl: l.iconoPropio,
+        iconSize: [50, 50], iconAnchor: [25, 50]
+      });
+
+      const marker = L.marker([l.y, l.x], { icon: icon });
+      
+      marker.on('click', () => {
+        if (l.type === "event") {
+          // Generar URL de Google Maps
+          const destino = l.googleMaps ? l.googleMaps : encodeURIComponent(l.name + ' Ambato, Ecuador');
+          const urlGoogle = `https://www.google.com/maps/search/?api=1&query=${destino}`;
+
+          let html = `<h2 style="margin-bottom:10px;">${l.name}</h2>`;
+          if(l.imagenLugar) html += `<img src="${l.imagenLugar}" class="sidebar-img">`;
+          html += `
+            <a href="${urlGoogle}" target="_blank" class="btn-como-llegar">
+              🚗 Cómo llegar
+            </a>
+          `;
+
+          if(l.cronograma) {
+            html += `<h3 style="margin: 15px 0 10px;">Cronograma</h3>`;
+            
+            l.cronograma.forEach(d => {
+                html += `<div style="background:#f9f9f9; padding:12px; border-radius:8px; border-left:4px solid #FFD700; margin-bottom:15px;">
+                            <strong style="font-size:14px; display:block; margin-bottom:8px;">📅 ${d.dia}</strong>`;
+                d.eventos.forEach(e => {
+                    html += `<div style="margin-bottom: 8px; border-bottom: 1px dotted #ccc; padding-bottom: 4px;">
+                                <span style="font-size:15px; font-weight:500; display:block;">• ${e.t}</span>
+                                <small style="color:#666;">⏰ ${e.h}</small>
+                             </div>`;
+                });
+                
+                html += `</div>`;
+            });
+        }
+          document.getElementById('sidebar-info').innerHTML = html;
+          document.getElementById('sidebar').classList.add('open');
+          map.panTo([l.y, l.x]);
+        } else {
+          window.open(l.url, "_blank");
+        }
+      });
+
+      groups[l.type === "event" ? 'events' : 'food'].addLayer(marker);
+    });
+
+    // --- FILTROS ---
+    function updateFilters() {
+      const ev = document.getElementById('filter-events').checked;
+      const fd = document.getElementById('filter-food').checked;
+      
+      ev ? map.addLayer(groups.events) : map.removeLayer(groups.events);
+      fd ? map.addLayer(groups.food) : map.removeLayer(groups.food);
+    }
+
+    document.getElementById('filter-events').addEventListener('change', updateFilters);
+    document.getElementById('filter-food').addEventListener('change', updateFilters);
+
+  </script>
+
+  <script>
+    map.on('click', function(e){
+      const y = Math.round(e.latlng.lat);
+      const x = Math.round(e.latlng.lng);
+      console.log('Coordenadas en píxeles:', x, y);
+      L.popup()
+        .setLatLng([y, x])
+        .setContent(`x: ${x} px<br>y: ${y} px`)
+        .openOn(map);
+    });
+  
+    // ejemplo: crear marcador con coordenadas conocidas
+    function addMarkerAtPx(x, y, type='event', name='Lugar'){
+      const latlng = [y, x]; // lat = y, lng = x en CRS.Simple
+      const icon = type === 'food' ? icons.food : icons.event;
+      const marker = L.marker(latlng, {icon}).addTo(map);
+      marker.bindPopup(`<strong>${name}</strong><br>(${x}, ${y})`);
+      return marker;
+    }
+  </script>
+  
+</body>
+</html>
